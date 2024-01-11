@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      .nowrap {
+        white-space: nowrap;
+      }
+
+      ol {
+        padding-left: 10px;
+      }
+
+      .active {
+        color: #0973ec;
+        font-weight: bold;
+      }
+
+      button {
+        padding: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <ol class="list-wrap">
+      <li>暂无数据</li>
+    </ol>
+
+    <div>
+      <button class="nowrap" id="copy-current">复制当前接口</button>
+      <hr />
+      <button class="nowrap" id="copy-all">复制全部接口</button>
+    </div>
+
+    <script src="./js/popup.js"></script>
+  </body>
+</html>

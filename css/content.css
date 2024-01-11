@@ -1,0 +1,19 @@
+.ky-wrap {
+  background: #fff;
+  padding: 20px;
+  margin-bottom: 20px;
+  font-size: 16px;
+}
+
+.link-item {
+  display: inline-block;
+  color: #5484ff;
+  text-decoration: underline;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+
+.chart-el {
+  height: 400px;
+  margin-bottom: 10px;
+}
