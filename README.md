@@ -1,5 +1,7 @@
 # knife4j2js
-Chrome扩展程序, 可根据 knife4j 文档生成前端接口js代码.
+Chrome扩展程序, 可根据 knife4j 文档生成前端接口js代码.  
+## 访问数 ![访问统计](https://count.getloli.com/@wyl-x-knife4j2js?theme=capoo-2)
+
 
 ## 安装使用
 1. 打开扩展程序页面 -> 开启开发者模式 -> 加载已解压的扩展程序
