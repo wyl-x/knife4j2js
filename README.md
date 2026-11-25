@@ -1,6 +1,7 @@
 # knife4j2js
 Chrome扩展程序, 可根据 knife4j 文档生成前端接口js代码.  
-## 访问数 ![访问统计](https://count.getloli.com/@wyl-x-knife4j2js?theme=capoo-2)
+## 访问数  
+- ![访问统计](https://count.getloli.com/@wyl-x-knife4j2js?theme=capoo-2)
 
 
 ## 安装使用
