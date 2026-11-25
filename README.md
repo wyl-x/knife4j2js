@@ -24,12 +24,7 @@ Chrome扩展程序, 可根据 knife4j 文档生成前端接口js代码.
 4. 复制到剪切板
 
 ### 使用示例
-### 例如查看了如下5个接口:
-![示例图片](./images/e1.png)
-![示例图片](./images/e2.png)
-![示例图片](./images/e3.png)
-![示例图片](./images/e4.png)
-![示例图片](./images/e5.png)
+### 例如点开了如下5个接口:
 ![示例图片](./images/e6.png)
 
 

@@ -1,43 +1,66 @@
-/**
- * @author 王玉龙
- * @email wangyulong@kyland.com
- * @create date 2023-12-27 14:45:30
- * @modify date 2023-12-27 14:45:30
- * @desc [description]
- */
+// 从 storage 读取配置
+async function getConfig() {
+  return new Promise((resolve) => {
+    chrome.storage.sync.get(["pathPrefix", "importPath"], (result) => {
+      resolve({
+        pathPrefix: result.pathPrefix || "",
+        importPath: result.importPath || "@/utils/request",
+      });
+    });
+  });
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log("content receive:", message);
   switch (message.type) {
     case "get_menu":
-      const menus = getMenu();
+      const menus = getMenu() || [];
       chrome.runtime.sendMessage({ type: "get_menu", menus });
       break;
 
     case "copy_current":
-      const result = getApiConfig(
-        ".ant-tabs-tabpane.ant-tabs-tabpane-active .knife4j-body-content"
-      );
-      if (result) copyTextToClipboard(genApiContent(result) + "\n");
+      getConfig().then((config) => {
+        const result = getApiConfig(
+          ".ant-tabs-tabpane.ant-tabs-tabpane-active .knife4j-body-content",
+          config
+        );
+        if (result) {
+          copyTextToClipboard(genApiContent(result, config) + "\n").then(() => {
+            chrome.runtime.sendMessage({ type: "copy_success", scope: "current" });
+          });
+        }
+      });
       break;
 
     case "copy_all":
-      let resultStr = "";
-      $(".ant-tabs-tabpane .knife4j-body-content").each((index, item) => {
-        const result = getApiConfig(item);
-        if (result) {
-          resultStr += genApiContent(result);
-          resultStr += "\n";
-        }
+      getConfig().then((config) => {
+        let resultStr = `import request from '${config.importPath}'\n`;
+        $(".ant-tabs-tabpane .knife4j-body-content").each((index, item) => {
+          const result = getApiConfig(item, config);
+          if (result) {
+            resultStr += genApiContent(result, config);
+            resultStr += "\n";
+          }
+        });
+        copyTextToClipboard(resultStr).then(() => {
+          chrome.runtime.sendMessage({ type: "copy_success", scope: "all" });
+        });
       });
-
-      copyTextToClipboard(resultStr);
       break;
   }
 });
 
+// 初始化时主动请求菜单数据
+chrome.tabs.query({}, function (tabs) {
+  tabs
+    .filter((v) => v.active)
+    .forEach((v) => {
+      chrome.tabs.sendMessage(v.id, { type: "get_menu" });
+    });
+});
+
 function getMenu() {
   if ($(".knife4j-menu").length === 0) {
-    return;
+    return [];
   }
 
   const subMenus = $(".ant-tabs-tab").has('[data-icon="close"]');
@@ -51,26 +74,39 @@ function getMenu() {
   return [...menus];
 }
 
-function getApiConfig(item) {
+function getApiConfig(item, config) {
   const result = {};
   const contentEl = $(item);
 
-  const title = contentEl.find(".knife4j-api-title .ant-col-18").text();
+  const title = contentEl.find(".knife4j-api-title>div>span").text();
   result.title = title.trim();
 
   const method = contentEl.find(".knife4j-api-summary-method").text();
   result.method = method.trim().toLowerCase();
 
   const path = contentEl.find(".knife4j-api-summary-path").text();
-  result.path = path;
+  result.path = (config.pathPrefix || "") + path;
 
   if (!result.title && !result.path) return null;
   return result;
 }
 
-function genApiContent(data) {
-  const pathParam = data.path.match(/{(.*?)}/)?.[1];
-  const pathParamArg = pathParam ? `${pathParam}, ` : "";
+function genApiContent(data, config) {
+  // 提取所有路径参数
+  const pathParams = [...data.path.matchAll(/\{(.*?)\}/g)].map((m) => m[1]);
+
+  // 处理参数名冲突
+  const reserved = new Set(["params", "data"]);
+  const safeParams = pathParams.map((p, idx) => {
+    if (reserved.has(p)) {
+      return `${p}Path${idx > 0 ? idx : ""}`;
+    }
+    // 处理重复参数名
+    const count = pathParams.slice(0, idx).filter((x) => x === p).length;
+    return count > 0 ? `${p}${count + 1}` : p;
+  });
+
+  const pathParamArg = safeParams.length ? safeParams.join(", ") + ", " : "";
 
   const actionMap = {
     get: "query",
@@ -79,18 +115,29 @@ function genApiContent(data) {
     delete: "delete",
   };
 
+  const action = actionMap[data.method] || "call";
+
   const apiName =
-    actionMap[data.method] +
+    action +
     data.path
       .split("/")
       .slice(-2)
       .join("-")
+      .split("_")
+      .join("-")
       .split("-")
       .map((item) => {
-        if (item.includes("{")) {
-          return `By${item[1].toUpperCase()}${item.slice(2, -1)}`;
+        // 安全处理路径参数
+        const paramMatch = item.match(/^\{(.+)\}$/);
+        if (paramMatch) {
+          const paramName = paramMatch[1];
+          if (paramName && paramName.length > 0) {
+            return `By${paramName[0].toUpperCase()}${paramName.slice(1)}`;
+          }
+          return "ByParam";
         }
 
+        // 普通路径段转驼峰
         const camel = item
           .split("")
           .map((it, idx) => {
@@ -101,19 +148,26 @@ function genApiContent(data) {
         return camel;
       })
       .join("");
-  data.path = data.path.split("{").join("${");
-  if (data.path.includes("${")) {
-    data.path = `\`${data.path}\``;
+
+  // 替换路径参数为模板字符串
+  let templatePath = data.path;
+  safeParams.forEach((param, idx) => {
+    templatePath = templatePath.replace(`{${pathParams[idx]}}`, `\${${param}}`);
+  });
+
+  if (templatePath.includes("${")) {
+    templatePath = `\`${templatePath}\``;
   } else {
-    data.path = `'${data.path}'`;
+    templatePath = `'${templatePath}'`;
   }
+
   if (data.method === "get") {
     return `
 /**
  * ${data.title}
  */
 export function ${apiName}(${pathParamArg}params) {
-  return request.${data.method}(${data.path}, { params })
+  return request.${data.method}(${templatePath}, { params })
 }`;
   }
 
@@ -122,15 +176,40 @@ export function ${apiName}(${pathParamArg}params) {
  * ${data.title}
  */
 export function ${apiName}(${pathParamArg}data) {
-  return request.${data.method}(${data.path}, data)
+  return request.${data.method}(${templatePath}, data)
 }`;
 }
 
-function copyTextToClipboard(text) {
-  var textArea = document.createElement("textarea");
+async function copyTextToClipboard(text) {
+  // 1. 安全上下文优先使用现代 Clipboard API
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (err) {
+      console.warn("Clipboard API 失败，尝试降级方案:", err);
+    }
+  }
+
+  // 2. HTTP 页面或权限受限时的降级方案
+  const textArea = document.createElement("textarea");
   textArea.value = text;
+  textArea.style.position = "fixed";
+  textArea.style.top = "0";
+  textArea.style.left = "0";
+  textArea.style.opacity = "0";
+
   document.body.appendChild(textArea);
+  textArea.focus();
   textArea.select();
-  document.execCommand("copy");
-  document.body.removeChild(textArea);
+
+  try {
+    const successful = document.execCommand("copy");
+    return successful;
+  } catch (err) {
+    console.error("复制失败:", err);
+    return false;
+  } finally {
+    document.body.removeChild(textArea);
+  }
 }

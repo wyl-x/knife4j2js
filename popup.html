@@ -1,39 +1,340 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
+    <title>Knife4j 代码生成器</title>
     <style>
-      .nowrap {
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        width: 340px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        background: #ffffff;
+        color: #1a1a1a;
+        padding: 0;
+      }
+
+      .container {
+        padding: 14px;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 12px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #e8e8e8;
+      }
+
+      .header h1 {
+        font-size: 15px;
+        font-weight: 600;
+        margin-bottom: 3px;
+        color: #1890ff;
+        letter-spacing: 0.5px;
+      }
+
+      .header p {
+        font-size: 11px;
+        color: #8c8c8c;
+      }
+
+      .config-body .input-group:last-of-type {
+        margin-bottom: 12px;
+      }
+
+      .config-body button {
+        width: 100%;
+      }
+
+      .list-wrap {
+        list-style: none;
+        background: #fafafa;
+        border: 1px solid #e8e8e8;
+        border-radius: 8px;
+        padding: 6px;
+        margin-bottom: 12px;
+        max-height: 350px;
+        overflow-y: auto;
+      }
+
+      .list-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        margin-bottom: 2px;
+        border-radius: 6px;
+        font-size: 12px;
+        transition: all 0.2s;
+        cursor: default;
+        color: #595959;
+      }
+
+      .list-item .index {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 4px;
+        border-radius: 4px;
+        background: #f0f0f0;
+        color: #8c8c8c;
+        font-size: 10px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .list-item .title {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
         white-space: nowrap;
       }
 
-      ol {
-        padding-left: 10px;
+      .list-item:hover .index {
+        background: #e6f7ff;
+        color: #1890ff;
       }
 
-      .active {
-        color: #0973ec;
-        font-weight: bold;
+      .list-item.active .index {
+        background: #1890ff;
+        color: #ffffff;
+      }
+
+      .list-item:hover {
+        background: #f0f0f0;
+        color: #262626;
+      }
+
+      .list-item.active {
+        background: #e6f7ff;
+        font-weight: 600;
+        color: #1890ff;
+        border-left: 3px solid #1890ff;
+      }
+
+      .list-wrap::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      .list-wrap::-webkit-scrollbar-track {
+        background: #f0f0f0;
+        border-radius: 2px;
+      }
+
+      .list-wrap::-webkit-scrollbar-thumb {
+        background: #d9d9d9;
+        border-radius: 2px;
+      }
+
+      .footer {
+        text-align: center;
+        font-size: 10px;
+        color: #bfbfbf;
+        margin-top: 14px;
+      }
+
+      .config-section {
+        background: #fafafa;
+        border: 1px solid #e8e8e8;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        overflow: hidden;
+      }
+
+      .config-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #262626;
+        cursor: pointer;
+        transition: background 0.2s;
+        user-select: none;
+      }
+
+      .config-header:hover {
+        background: #f0f0f0;
+      }
+
+      .config-header .arrow {
+        font-size: 10px;
+        color: #8c8c8c;
+        transition: transform 0.2s;
+      }
+
+      .config-section.expanded .config-header .arrow {
+        transform: rotate(180deg);
+      }
+
+      .config-body {
+        display: none;
+        padding: 0 14px 14px;
+        border-top: 1px solid #e8e8e8;
+        padding-top: 12px;
+      }
+
+      .config-section.expanded .config-body {
+        display: block;
+      }
+
+      .input-group {
+        margin-bottom: 12px;
+      }
+
+      .input-group label {
+        display: block;
+        font-size: 11px;
+        margin-bottom: 6px;
+        color: #595959;
+        font-weight: 500;
+      }
+
+      .input-group input {
+        width: 100%;
+        padding: 9px 12px;
+        border: 1px solid #d9d9d9;
+        border-radius: 6px;
+        background: #ffffff;
+        color: #262626;
+        font-size: 12px;
+        outline: none;
+        transition: all 0.2s;
+      }
+
+      .input-group input:focus {
+        border-color: #1890ff;
+        box-shadow: 0 0 0 3px rgba(24, 144, 255, 0.1);
+      }
+
+      .input-group input::placeholder {
+        color: #bfbfbf;
+      }
+
+      .button-group {
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+      }
+
+      .button-group button {
+        flex: 1;
+        padding: 11px 8px;
+        white-space: nowrap;
       }
 
       button {
-        padding: 20px;
+        padding: 11px 16px;
+        border: none;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        outline: none;
+        letter-spacing: 0.3px;
+      }
+
+      .btn-primary {
+        background: #1890ff;
+        color: #ffffff;
+      }
+
+      .btn-primary:hover {
+        background: #40a9ff;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+      }
+
+      .btn-primary:active {
+        background: #096dd9;
+        transform: translateY(0);
+      }
+
+      .btn-secondary {
+        background: #ffffff;
+        color: #595959;
+        border: 1px solid #d9d9d9;
+      }
+
+      .btn-secondary:hover {
+        color: #1890ff;
+        border-color: #1890ff;
+      }
+
+      .btn-success {
+        background: #52c41a !important;
+        color: #ffffff !important;
+      }
+
+      .divider {
+        height: 1px;
+        background: #e8e8e8;
+        margin: 16px 0;
+      }
+
+      .footer {
+        text-align: center;
+        font-size: 10px;
+        color: #bfbfbf;
+        margin-top: 14px;
       }
     </style>
   </head>
   <body>
-    <ol class="list-wrap">
-      <li>暂无数据</li>
-    </ol>
+    <div class="container">
+      <div class="header">
+        <h1>⚡ Knife4j 代码生成器</h1>
+        <p>一键生成前端接口代码</p>
+      </div>
 
-    <div>
-      <button class="nowrap" id="copy-current">复制当前接口</button>
-      <hr />
-      <button class="nowrap" id="copy-all">复制全部接口</button>
+      <ol class="list-wrap">
+        <li class="list-item">暂无数据</li>
+      </ol>
+
+      <div class="config-section" id="config-section">
+        <div class="config-header" id="config-toggle">
+          <span>⚙️ 配置</span>
+          <span class="arrow">▼</span>
+        </div>
+        <div class="config-body">
+          <div class="input-group">
+            <label>基础路径前缀</label>
+            <input
+              type="text"
+              id="path-prefix"
+              placeholder="例如: /api/v1"
+            />
+          </div>
+          <div class="input-group">
+            <label>Request 导入路径</label>
+            <input
+              type="text"
+              id="import-path"
+              placeholder="例如: @/utils/request"
+            />
+          </div>
+          <button class="btn-secondary" id="save-config">保存配置</button>
+        </div>
+      </div>
+
+      <div class="button-group">
+        <button class="btn-primary" id="copy-current">📋 复制当前</button>
+        <button class="btn-primary" id="copy-all">📦 复制全部</button>
+      </div>
     </div>
 
     <script src="./js/popup.js"></script>
   </body>
 </html>
+
